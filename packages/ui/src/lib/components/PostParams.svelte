@@ -266,7 +266,8 @@
 							<span>{activeParam.rangeLabels[1]}</span>
 						</div>
 					{/if}
-				{:else if activeParam?.type === ParamType.string && activeParam?.options}
+				{/if}
+			{:else if activeParam?.type === ParamType.string && activeParam?.options}
 				{#if activeParam.description}
 					<span class="param-description">{activeParam.description}</span>
 				{/if}
@@ -279,7 +280,6 @@
 						<option value={opt}>{opt}</option>
 					{/each}
 				</select>
-				{/if}
 			{/if}
 			<button class="revert-btn" onclick={revertGroup}>
 				<svg width="14" height="14" viewBox="0 0 26 26" fill="none">
