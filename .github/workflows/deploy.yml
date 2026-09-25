@@ -1,8 +1,17 @@
 name: Deploy to GitHub Pages
+# A quilt-client release names itself here, so a deploy that came from the
+# builder is legible in the Actions list rather than looking like a rebuild.
+run-name: >-
+  Deploy${{ github.event.client_payload.version && format(' (quilt-client {0})',
+  github.event.client_payload.version) || '' }}
 
 on:
   push:
     branches: 'main'
+  # Publishing the quilt builder tells this site to rebuild, so the newest
+  # builder reaches the journal without a commit here.
+  repository_dispatch:
+    types: [quilt-release]
 
 jobs:
   build_site:
@@ -16,9 +25,23 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          # skeryl/quilt-builder is another account's repository, so this build
+          # cannot use its own GITHUB_TOKEN and carries a PAT instead.
+          registry-url: https://npm.pkg.github.com
+          scope: '@skeryl'
 
       - name: Install dependencies
         run: npm install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.QUILT_READ_TOKEN }}
+
+      # The lockfile pins whatever was current when someone last installed. A
+      # deploy should carry whatever was published most recently, including a
+      # release that dispatched this very run.
+      - name: Take the newest quilt builder
+        run: npm install @skeryl/quilt-client@latest -w @sc/ui
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.QUILT_READ_TOKEN }}
 
       - name: build
         run: npm run build -w @sc/ui
