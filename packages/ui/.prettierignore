@@ -6,3 +6,7 @@ yarn.lock
 # Build output
 build/
 .svelte-kit/
+
+# Traced coordinate data, kept on one line on purpose. Formatting it turns 572
+# tuples into 572 lines and tells nobody anything.
+src/lib/data/moire-gap-data.ts

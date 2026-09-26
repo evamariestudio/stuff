@@ -23,11 +23,9 @@
 			.map(([label, items]) => ({ label, items }))
 			.filter((s) =>
 				s.items.some(
-				(p) =>
-					p.type === ParamType.color ||
-					p.type === ParamType.number ||
-					p.type === ParamType.string
-			)
+					(p) =>
+						p.type === ParamType.color || p.type === ParamType.number || p.type === ParamType.string
+				)
 			);
 	});
 
@@ -37,15 +35,15 @@
 	let visibleParams = $derived(
 		activeGroup?.items.filter(
 			(p) =>
-				p.type === ParamType.color ||
-				p.type === ParamType.number ||
-				p.type === ParamType.string
+				p.type === ParamType.color || p.type === ParamType.number || p.type === ParamType.string
 		) ?? []
 	);
 	// Per-group memory: remember which param tab the user last selected for each group
 	let groupActiveParamIndex = $state<Record<number, number>>({});
 	let activeParamIndex = $derived(groupActiveParamIndex[activeGroupIndex] ?? 0);
-	let activeParam = $derived(visibleParams[activeParamIndex] as ContentParam<ParamType> | undefined);
+	let activeParam = $derived(
+		visibleParams[activeParamIndex] as ContentParam<ParamType> | undefined
+	);
 
 	function setActiveParam(i: number) {
 		groupActiveParamIndex = { ...groupActiveParamIndex, [activeGroupIndex]: i };
@@ -58,6 +56,22 @@
 		const reverted = params.map((p) => (groupIds.has(p.id) ? { ...p, value: p.defaultValue } : p));
 		onParamsChange(reverted);
 		params = reverted;
+	}
+
+	type SliderRange = { min: number; max: number; step?: number | 'any' };
+
+	/*
+	 * These casts live here rather than in the markup. A type assertion inside
+	 * a template expression is more than the parser prettier uses will take,
+	 * and it gives up on the whole file.
+	 */
+	function rangeOf(param: ContentParam<ParamType>): SliderRange | undefined {
+		return param.range as SliderRange | undefined;
+	}
+
+	function setParamFromEvent(param: ContentParam<ParamType>, e: Event) {
+		const target = e.target as HTMLInputElement | HTMLSelectElement;
+		onParamChange({ ...param, value: target.value });
 	}
 
 	function onParamChange(changed: ContentParam<ParamType>) {
@@ -78,6 +92,11 @@
 	function onSliderInput(param: ContentParam<ParamType>, e: Event) {
 		const value = Number((e.target as HTMLInputElement).value);
 		onParamChange({ ...param, value });
+	}
+
+	/* Same reason; a `!` in the markup stops the parser just as a cast does. */
+	function onActiveSliderInput(e: Event) {
+		if (activeParam) onSliderInput(activeParam, e);
 	}
 
 	let openPickerId = $state<string | null>(null);
@@ -105,9 +124,35 @@
 							title={isVisible ? 'Hide zone' : 'Show zone'}
 						>
 							{#if isVisible}
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+								<svg
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle
+										cx="12"
+										cy="12"
+										r="3"
+									/></svg
+								>
 							{:else}
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+								<svg
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><path
+										d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+									/><line x1="1" y1="1" x2="23" y2="23" /></svg
+								>
 							{/if}
 						</button>
 					{/if}
@@ -115,98 +160,106 @@
 			{/if}
 			{#each section.items as param}
 				{#if param.type === ParamType.boolean}<!-- rendered in header, skip -->{:else}
-				<div class="param-item">
-					{#if param.type === ParamType.color}
-						{@const hex = String(param.value)}
-						{@const isOpen = openPickerId === param.id}
-						<div class="color-param">
-							<div class="param-label-row">
-								<span class="param-label">{param.name} ({hex})</span>
-								{#if param.value !== param.defaultValue}
-									<button class="reset-btn" onclick={() => onParamChange({ ...param, value: param.defaultValue })} title="Reset to default">↩</button>
+					<div class="param-item">
+						{#if param.type === ParamType.color}
+							{@const hex = String(param.value)}
+							{@const isOpen = openPickerId === param.id}
+							<div class="color-param">
+								<div class="param-label-row">
+									<span class="param-label">{param.name} ({hex})</span>
+									{#if param.value !== param.defaultValue}
+										<button
+											class="reset-btn"
+											onclick={() => onParamChange({ ...param, value: param.defaultValue })}
+											title="Reset to default">↩</button
+										>
+									{/if}
+								</div>
+								{#if param.description}
+									<span class="param-description">{param.description}</span>
+								{/if}
+								<button
+									class="color-swatch"
+									style="background: {hex}"
+									onclick={() => (openPickerId = isOpen ? null : param.id)}
+									aria-label={isOpen ? 'Close color picker' : 'Open color picker'}
+								></button>
+								{#if isOpen}
+									<ColorPicker
+										value={hex}
+										onChange={(newHex) => onParamChange({ ...param, value: newHex })}
+									/>
 								{/if}
 							</div>
-							{#if param.description}
-								<span class="param-description">{param.description}</span>
-							{/if}
-							<button
-								class="color-swatch"
-								style="background: {hex}"
-								onclick={() => (openPickerId = isOpen ? null : param.id)}
-								aria-label={isOpen ? 'Close color picker' : 'Open color picker'}
-							></button>
-							{#if isOpen}
-								<ColorPicker
-									value={hex}
-									onChange={(newHex) => onParamChange({ ...param, value: newHex })}
-								/>
-							{/if}
-						</div>
-					{:else if param.type === ParamType.number}
-						{@const range = param.range as { min: number; max: number; step?: number | 'any' } | undefined}
-						<div class="slider-param">
-							<div class="param-label-row">
-								<span class="param-label">{param.name} ({formatValue(param)})</span>
-								{#if param.value !== param.defaultValue}
-									<button class="reset-btn" onclick={() => onParamChange({ ...param, value: param.defaultValue })} title="Reset to default">↩</button>
+						{:else if param.type === ParamType.number}
+							{@const range = rangeOf(param)}
+							<div class="slider-param">
+								<div class="param-label-row">
+									<span class="param-label">{param.name} ({formatValue(param)})</span>
+									{#if param.value !== param.defaultValue}
+										<button
+											class="reset-btn"
+											onclick={() => onParamChange({ ...param, value: param.defaultValue })}
+											title="Reset to default">↩</button
+										>
+									{/if}
+								</div>
+								{#if param.description}
+									<span class="param-description">{param.description}</span>
+								{/if}
+								{#if range}
+									<input
+										type="range"
+										min={range.min}
+										max={range.max}
+										step={range.step ?? 'any'}
+										value={param.value}
+										oninput={(e) => onSliderInput(param, e)}
+										class="slider"
+									/>
+									{#if param.rangeLabels}
+										<div class="range-labels">
+											<span>{param.rangeLabels[0]}</span>
+											<span>{param.rangeLabels[1]}</span>
+										</div>
+									{/if}
 								{/if}
 							</div>
-							{#if param.description}
-								<span class="param-description">{param.description}</span>
-							{/if}
-							{#if range}
-								<input
-									type="range"
-									min={range.min}
-									max={range.max}
-									step={range.step ?? 'any'}
+						{:else if param.type === ParamType.string && param.options}
+							<div class="select-param">
+								<div class="param-label-row">
+									<span class="param-label">{param.name}</span>
+								</div>
+								{#if param.description}
+									<span class="param-description">{param.description}</span>
+								{/if}
+								<select
+									class="param-select"
 									value={param.value}
-									oninput={(e) => onSliderInput(param, e)}
-									class="slider"
-								/>
-								{#if param.rangeLabels}
-									<div class="range-labels">
-										<span>{param.rangeLabels[0]}</span>
-										<span>{param.rangeLabels[1]}</span>
-									</div>
+									onchange={(e) => setParamFromEvent(param, e)}
+								>
+									{#each param.options as opt}
+										<option value={opt}>{opt}</option>
+									{/each}
+								</select>
+							</div>
+						{:else if param.type === ParamType.string && !param.options}
+							<div class="text-param">
+								<div class="param-label-row">
+									<span class="param-label">{param.name}</span>
+								</div>
+								{#if param.description}
+									<span class="param-description">{param.description}</span>
 								{/if}
-							{/if}
-						</div>
-					{:else if param.type === ParamType.string && param.options}
-						<div class="select-param">
-							<div class="param-label-row">
-								<span class="param-label">{param.name}</span>
+								<input
+									type="text"
+									class="param-text-input"
+									value={param.value}
+									oninput={(e) => setParamFromEvent(param, e)}
+								/>
 							</div>
-							{#if param.description}
-								<span class="param-description">{param.description}</span>
-							{/if}
-							<select
-								class="param-select"
-								value={param.value}
-								onchange={(e) => onParamChange({ ...param, value: (e.target as HTMLSelectElement).value })}
-							>
-								{#each param.options as opt}
-									<option value={opt}>{opt}</option>
-								{/each}
-							</select>
-						</div>
-					{:else if param.type === ParamType.string && !param.options}
-						<div class="text-param">
-							<div class="param-label-row">
-								<span class="param-label">{param.name}</span>
-							</div>
-							{#if param.description}
-								<span class="param-description">{param.description}</span>
-							{/if}
-							<input
-								type="text"
-								class="param-text-input"
-								value={param.value}
-								oninput={(e) => onParamChange({ ...param, value: (e.target as HTMLInputElement).value })}
-							/>
-						</div>
-					{/if}
-				</div>
+						{/if}
+					</div>
 				{/if}
 			{/each}
 		{/each}
@@ -246,7 +299,7 @@
 					onChange={(newHex) => onParamChange({ ...activeParam, value: newHex })}
 				/>
 			{:else if activeParam?.type === ParamType.number}
-				{@const range = activeParam.range as { min: number; max: number; step?: number | 'any' } | undefined}
+				{@const range = rangeOf(activeParam)}
 				{#if activeParam.description}
 					<span class="param-description">{activeParam.description}</span>
 				{/if}
@@ -257,7 +310,7 @@
 						max={range.max}
 						step={range.step ?? 'any'}
 						value={activeParam.value}
-						oninput={(e) => onSliderInput(activeParam!, e)}
+						oninput={onActiveSliderInput}
 						class="slider"
 					/>
 					{#if activeParam.rangeLabels}
@@ -274,7 +327,7 @@
 				<select
 					class="param-select"
 					value={activeParam.value}
-					onchange={(e) => onParamChange({ ...activeParam, value: (e.target as HTMLSelectElement).value })}
+					onchange={(e) => setParamFromEvent(activeParam, e)}
 				>
 					{#each activeParam.options as opt}
 						<option value={opt}>{opt}</option>
@@ -283,7 +336,13 @@
 			{/if}
 			<button class="revert-btn" onclick={revertGroup}>
 				<svg width="14" height="14" viewBox="0 0 26 26" fill="none">
-					<path d="M0.999999 8.5L0.823222 8.67678L0.646445 8.5L0.823222 8.32323L0.999999 8.5ZM8.5 25.25C8.36193 25.25 8.25 25.1381 8.25 25C8.25 24.8619 8.36193 24.75 8.5 24.75L8.5 25L8.5 25.25ZM8.5 16L8.32322 16.1768L0.823222 8.67678L0.999999 8.5L1.17678 8.32323L8.67678 15.8232L8.5 16ZM0.999999 8.5L0.823222 8.32323L8.32322 0.823224L8.5 1L8.67678 1.17678L1.17678 8.67678L0.999999 8.5ZM0.999999 8.5L0.999999 8.25L16.75 8.25L16.75 8.5L16.75 8.75L0.999999 8.75L0.999999 8.5ZM16.75 25L16.75 25.25L8.5 25.25L8.5 25L8.5 24.75L16.75 24.75L16.75 25ZM25 16.75L25.25 16.75C25.25 21.4444 21.4444 25.25 16.75 25.25L16.75 25L16.75 24.75C21.1683 24.75 24.75 21.1683 24.75 16.75L25 16.75ZM16.75 8.5L16.75 8.25C21.4444 8.25 25.25 12.0556 25.25 16.75L25 16.75L24.75 16.75C24.75 12.3317 21.1683 8.75 16.75 8.75L16.75 8.5Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>
+					<path
+						d="M0.999999 8.5L0.823222 8.67678L0.646445 8.5L0.823222 8.32323L0.999999 8.5ZM8.5 25.25C8.36193 25.25 8.25 25.1381 8.25 25C8.25 24.8619 8.36193 24.75 8.5 24.75L8.5 25L8.5 25.25ZM8.5 16L8.32322 16.1768L0.823222 8.67678L0.999999 8.5L1.17678 8.32323L8.67678 15.8232L8.5 16ZM0.999999 8.5L0.823222 8.32323L8.32322 0.823224L8.5 1L8.67678 1.17678L1.17678 8.67678L0.999999 8.5ZM0.999999 8.5L0.999999 8.25L16.75 8.25L16.75 8.5L16.75 8.75L0.999999 8.75L0.999999 8.5ZM16.75 25L16.75 25.25L8.5 25.25L8.5 25L8.5 24.75L16.75 24.75L16.75 25ZM25 16.75L25.25 16.75C25.25 21.4444 21.4444 25.25 16.75 25.25L16.75 25L16.75 24.75C21.1683 24.75 24.75 21.1683 24.75 16.75L25 16.75ZM16.75 8.5L16.75 8.25C21.4444 8.25 25.25 12.0556 25.25 16.75L25 16.75L24.75 16.75C24.75 12.3317 21.1683 8.75 16.75 8.75L16.75 8.5Z"
+						fill="currentColor"
+						stroke="currentColor"
+						stroke-width="1"
+						stroke-linejoin="round"
+					/>
 				</svg>
 				revert to default
 			</button>
@@ -293,8 +352,18 @@
 		<div class="strip-tabs">
 			<button class="strip-close" onclick={onClose} aria-label="Close parameters">
 				<svg width="20" height="20" viewBox="0 0 26 26" fill="none">
-					<path d="M19 7L7 19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
-					<path d="M7 7L19 19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+					<path
+						d="M19 7L7 19"
+						stroke="currentColor"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+					<path
+						d="M7 7L19 19"
+						stroke="currentColor"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
 				</svg>
 			</button>
 			{#each sections as section, i}
