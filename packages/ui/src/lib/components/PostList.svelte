@@ -7,7 +7,7 @@
 		'lava-territories',
 		'blob-convergence',
 		'blob-grid',
-		'moire-pattern'
+		'quilt-builder'
 	]);
 
 	function sortPosts(a: PostSummary, b: PostSummary): number {

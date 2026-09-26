@@ -41,8 +41,8 @@ function assertNoErrors(page: any) {
 
 test('home page loads and shows post cards', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.locator('.card-grid')).toBeVisible();
-	const cards = page.locator('.card-grid a');
+	await expect(page.locator('.feed')).toBeVisible();
+	const cards = page.locator('.feed .post-item');
 	expect(await cards.count()).toBeGreaterThan(0);
 	assertNoErrors(page);
 });
@@ -63,7 +63,7 @@ test('journal page loads', async ({ page }) => {
 
 test('cards link to journal entries', async ({ page }) => {
 	await page.goto('/');
-	const firstCard = page.locator('.card-grid a').first();
+	const firstCard = page.locator('.feed .post-item').first();
 	const href = await firstCard.getAttribute('href');
 	expect(href).toContain('/journal/');
 });
