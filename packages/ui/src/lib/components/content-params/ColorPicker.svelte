@@ -70,6 +70,11 @@
 		}
 	});
 
+	function onHueInput(e: Event) {
+		hState = Number((e.target as HTMLInputElement).value);
+		commit();
+	}
+
 	function commit() {
 		const hex = hsvToHex(hState, sState, vState);
 		lastCommitted = hex;
@@ -87,9 +92,7 @@
 		if (!squareEl) return;
 		const rect = squareEl.getBoundingClientRect();
 		sState = Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * 100);
-		vState = Math.round(
-			(1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height))) * 100
-		);
+		vState = Math.round((1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height))) * 100);
 		commit();
 	}
 
@@ -159,6 +162,18 @@
 		hexEditing = false;
 	}
 
+	function onHexInput(e: Event) {
+		hexEditValue = (e.target as HTMLInputElement).value;
+	}
+
+	function onHexKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commitHexEdit();
+		}
+		if (e.key === 'Escape') cancelHexEdit();
+	}
+
 	// ── Copy ───────────────────────────────────────────────────────────────────
 
 	let toastVisible = $state(false);
@@ -212,17 +227,7 @@
 	</div>
 
 	<!-- Hue slider -->
-	<input
-		type="range"
-		class="hue-slider"
-		min="0"
-		max="359"
-		value={hState}
-		oninput={(e) => {
-			hState = Number((e.target as HTMLInputElement).value);
-			commit();
-		}}
-	/>
+	<input type="range" class="hue-slider" min="0" max="359" value={hState} oninput={onHueInput} />
 
 	<!-- HEX + RGB display -->
 	<div class="color-values">
@@ -233,20 +238,13 @@
 					class="hex-edit-input"
 					type="text"
 					value={hexEditValue}
-					oninput={(e) => { hexEditValue = (e.target as HTMLInputElement).value; }}
-					onkeydown={(e) => {
-						if (e.key === 'Enter') { e.preventDefault(); commitHexEdit(); }
-						if (e.key === 'Escape') cancelHexEdit();
-					}}
+					oninput={onHexInput}
+					onkeydown={onHexKeydown}
 					onblur={commitHexEdit}
 					autofocus
 				/>
 			{:else}
-				<button
-					class="color-value-pill"
-					onclick={startHexEdit}
-					title="Click to edit"
-				>
+				<button class="color-value-pill" onclick={startHexEdit} title="Click to edit">
 					{hexDisplay.toUpperCase()}
 				</button>
 			{/if}
@@ -256,7 +254,7 @@
 			<span class="color-value-label">R:</span>
 			<button
 				class="color-value-pill"
-onclick={() => copyValue(String(rgbDisplay[0]))}
+				onclick={() => copyValue(String(rgbDisplay[0]))}
 				title="Copy R"
 			>
 				{rgbDisplay[0]}
@@ -264,7 +262,7 @@ onclick={() => copyValue(String(rgbDisplay[0]))}
 			<span class="color-value-label">G:</span>
 			<button
 				class="color-value-pill"
-onclick={() => copyValue(String(rgbDisplay[1]))}
+				onclick={() => copyValue(String(rgbDisplay[1]))}
 				title="Copy G"
 			>
 				{rgbDisplay[1]}
@@ -272,7 +270,7 @@ onclick={() => copyValue(String(rgbDisplay[1]))}
 			<span class="color-value-label">B:</span>
 			<button
 				class="color-value-pill"
-onclick={() => copyValue(String(rgbDisplay[2]))}
+				onclick={() => copyValue(String(rgbDisplay[2]))}
 				title="Copy B"
 			>
 				{rgbDisplay[2]}
@@ -401,7 +399,9 @@ onclick={() => copyValue(String(rgbDisplay[2]))}
 		cursor: pointer;
 		border-radius: 0;
 		-webkit-tap-highlight-color: rgba(0, 0, 0, 0.15);
-		transition: background 0.1s, color 0.1s;
+		transition:
+			background 0.1s,
+			color 0.1s;
 	}
 
 	.color-value-pill:hover {
